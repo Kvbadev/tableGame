@@ -5,7 +5,7 @@
 #include <stdlib.h> //exit()
 #include "point.h" //wlasne klasy
 
-//zmienne i tablice
+//zmienne, tablice i obiekty
 const int x = 10;
 const int y = 10;
 const int enemyCount = 7;
@@ -13,17 +13,20 @@ char board [x][y];
 Enemy e[enemyCount];
 Point point;
 Player p(0,5,'O');
+Gift g;
 
 //funkcje
-void initBoard(char tab[][10], int ile, const int &enemyCount, Enemy *e, Player p);
+void initBoard(char tab[][10], int ile, const int &enemyCount, Enemy *e, Player p, Gift g);
 void initEnemy(char tab[][10], Enemy *e, const int &enemyCounter);
+void initGift(Gift &g, Enemy *e);
 int random(){ return (rand()%9)+1;}
 bool isUsed(Enemy *en, int l, int ile, bool checkX);
-void update(char tab[][10], Player p, bool endOfGame);
+void update(char tab[][10], Player p, Gift g, int variant);
 void move(Player &p, Point &point, char tab[][10], Enemy *e, const int &enemyCount);
 bool isBorder(int n);
 bool isEnemy(Player p, Enemy *e, const int &enemyCount);
 void movement(int n, char tab[][10], Point point, Player &p, Enemy *e, bool isX);
+void initGift(Gift &g, Enemy *e, const int &enemyCount);
 
 
 int main(){
@@ -31,23 +34,28 @@ int main(){
 	srand(time(NULL));
 
 	initEnemy(board, e, enemyCount);
-	initBoard(board, x, enemyCount, e, p);
+	initGift(g, e, enemyCount);
+	initBoard(board, x, enemyCount, e, p, g);
+	std::cout<<"x: "<<g.getX()<<" y: "<<g.getY();
 
 	while(true){
-		update(board, p, false);
-		move(p, point, board, e, enemyCount);
-	}
+		update(board, p,g,0);
+	  	move(p, point, board, e, enemyCount);
+		// std::cout<<"Player: "<<p.getX()<<" "<<p.getY()<<std::endl;
+		// std::cout<<"Gift: "<<g.getX()<<" "<<g.getY()<<std::endl;
+	 }
 
 	return 0;
 }
 
-void initBoard(char tab[][10], int ile, const int &enemyCount, Enemy *e, Player p){
+void initBoard(char tab[][10], int ile, const int &enemyCount, Enemy *e, Player p, Gift g){
 	for(int i=0;i<ile;i++){
 		for(int j=0;j<ile;j++){ //generowanie pustych znakow do template tabeli
 			tab[i][j] = ' ';
 		}
 	}
 	tab[p.getX()][p.getY()] = p.getC();
+	tab[g.getX()][g.getY()] = g.getC();
 	for(int i=0;i<enemyCount;i++){
 		tab[e[i].getX()][e[i].getY()] = e[i].getC();
 	}
@@ -56,23 +64,14 @@ void initBoard(char tab[][10], int ile, const int &enemyCount, Enemy *e, Player 
 void initEnemy(char tab[][10], Enemy *e, const int &enemyCount){
 	for(int i=0;i<enemyCount;i++){ //generowanie wrogow poprzez ich obiekty
 
-		for(int j=0; j<2; j++){
-			if(j==0){
-				do{
-					 e[i].setX(random());
-				}while(isUsed(e, e[i].getX(), i, true)); //sprawdzanie czy obiekt z takim parametrem x istnieje
-			}
-			else{
-				do{
-					 e[i].setY(random());
-				}while(isUsed(e, e[i].getY(), i, false));
-			}
-		}
-
+		do{
+			e[i].setX(random());
+		}while(isUsed(e, e[i].getX(), i, true)); //sprawdzanie czy obiekt z takim parametrem x istnieje
+		do{
+			e[i].setY(random());
+		}while(isUsed(e, e[i].getY(), i, false));
 		tab[e[i].getX()][e[i].getY()] = e[i].getC(); //enemies
-
 	}
-
 }
 bool isUsed(Enemy *en, int l, int ile, bool checkX){
 
@@ -92,14 +91,19 @@ bool isUsed(Enemy *en, int l, int ile, bool checkX){
 	}
 
 }
-void update(char tab[][10], Player p, bool endOfGame){
+void update(char tab[][10], Player p, Gift g, int variant){
 	system("cls");
 
 	tab[p.getX()][p.getY()] = p.getC();
 	for(int i=0;i<10;i++){
 		for(int j=0;j<10;j++){
-			if((endOfGame) && (p.getX()==i && p.getY()==j)){
+			if((variant==1) && (p.getX()==i && p.getY()==j)){
 				printf("\033[31m");
+				std::cout<<tab[i][j];
+				printf("\033[37m");
+			}
+			else if((variant==2)&&(g.getX()==i && g.getY()==j)){
+				printf("\u001b[32m");
 				std::cout<<tab[i][j];
 				printf("\033[37m");
 			}
@@ -179,6 +183,11 @@ bool isEnemy(Player p, Enemy *e, const int &enemyCount){
 
 }
 
+bool isGift(Gift &g, Player &p){
+	if(p.getX()==g.getX() && p.getY()==g.getY()) return true;
+	else return false;
+}
+
 void movement(int n, char tab[][10], Point point, Player &p, Enemy *e, bool isX){
 
 	if(isBorder(n)){
@@ -188,13 +197,31 @@ void movement(int n, char tab[][10], Point point, Player &p, Enemy *e, bool isX)
 	else{
 		tab[p.getX()][p.getY()] = point.getC();
 		if(isX) p.setX(n);
-		else p.setY(n);
+		else 	p.setY(n);
 		
 		if(isEnemy(p, e, enemyCount)){
-			update(tab,p,true);
+			update(tab,p,g,1);
 			std::cout<<"Game Over!";
 			Sleep(1000);
 			exit(0);
 		}
+		else if(isGift(g, p)){
+			update(tab,p,g,2);
+			std::cout<<"You Win!";
+			Sleep(1000);
+			exit(0);
+		}
+	}
+}
+
+void initGift(Gift &g, Enemy *e, const int &enemyCount){
+
+	for(int i=0; i<enemyCount; i++){
+		do{
+			g.setX(random());
+		}while(isUsed(e, g.getX(),enemyCount,true) && g.getX()<=2);
+		do{
+			g.setY(random());
+		}while(isUsed(e,g.getY(),enemyCount,false));
 	}
 }

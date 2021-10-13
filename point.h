@@ -42,3 +42,9 @@ public:
 	Player(int a=0, int b=0, char ch='O') : Point(a,b,ch){};
 
 };
+
+class Gift : public Point{
+public:
+	Gift(int a=0, int b=0, char c='*') : Point(a,b,c){};
+
+};
